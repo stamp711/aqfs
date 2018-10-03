@@ -10,8 +10,8 @@ class disk_t {
 
   public:
     void setroot(std::string root) { this->root = root; }
-    int read(uint32_t blkino);
-    int write(uint32_t blkino);
+    int read(uint32_t blkno, char *buf);
+    int write(uint32_t blkno, char *buf);
 };
 
 } // namespace aqfs
