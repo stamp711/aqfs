@@ -3,11 +3,12 @@
 #include "runtime.h"
 #include <boost/filesystem.hpp>
 #include <cstring>
+#include <vector>
 
 static const char blk_root[] = "/home/vagrant/fs";
 typedef boost::filesystem::path path_t;
-using aqfs::Dir::dir_t;
-using aqfs::Inode::inode_t;
+using aqfs::dir_t;
+using aqfs::inode_t;
 
 /* helpers */
 int cd(dir_t &d, path_t p) {
@@ -195,7 +196,7 @@ int fs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off,
             st.st_size = inode.getsize();
 
         /* 塞进buf，忽略`off` */
-        filler(buf, entries.front().filename, &st, 0);
+        filler(buf, entries.front().name, &st, 0);
         entries.pop();
     }
 
@@ -453,9 +454,8 @@ int fs::truncate(const char *path, off_t size) {
 
     if (curr_size < size) {
         uint32_t diff = curr_size - size;
-        char buf[diff];
-        std::memset(buf, 0, diff);
-        int res = inode.write(size - curr_size, curr_size, buf);
+        std::vector<char> buf(diff, 0);
+        int res = inode.write(size - curr_size, curr_size, buf.data());
         if (res != 0)
             return -EIO;
     }

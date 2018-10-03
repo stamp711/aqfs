@@ -1,22 +1,14 @@
 #ifndef AQFS_INODE_H
 #define AQFS_INODE_H
 
-#include "blk.h"
-#include "paras.h"
+#include "base.h"
 #include <stdint.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 namespace aqfs {
 
-const int DIRECT_BLKS_PER_INODE         = 5;
-const int SINGLE_INDRECT_BLKS_PER_INODE = 8;
-const int MAX_DBLKS_PER_INODE =
-    DIRECT_BLKS_PER_INODE * SINGLE_INDRECT_BLKS_PER_INODE;
-
-namespace Inode {
-
-/* the on disk inode */
+/* the on disk inode structure */
 struct inode {
     /* metadata */
     mode_t mode;       /* file mode, see man 2 stat */
@@ -34,22 +26,22 @@ struct inode {
 struct inode_blk {
     struct inode inodes[INODES_PER_BLK];
 };
-typedef Blk::buf<inode_blk> inode_blk_buf;
+typedef blkbuf<inode_blk> inode_blk_buf;
 
 /* indirect data block */
 struct indirect_blk {
     uint32_t link[INDRECT_LINK_PER_BLK];
 };
-typedef Blk::buf<indirect_blk> indirect_blk_buf;
+typedef blkbuf<indirect_blk> indirect_blk_buf;
 
 /* structure for plain file data blk */
 struct data_blk {
     char content[BLKSIZE];
 };
-typedef Blk::buf<data_blk> data_blk_buf;
+typedef blkbuf<data_blk> data_blk_buf;
 
 /* the in memory inode_t */
-struct inode_t {
+class inode_t {
   private:
     uint32_t ino; /* unique inode number */
     struct inode inode;
@@ -123,8 +115,6 @@ struct inode_t {
     }
     uint32_t get_blkno(size_t n);
 };
-
-} // namespace Inode
 
 } // namespace aqfs
 
