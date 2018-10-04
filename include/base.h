@@ -26,9 +26,16 @@ struct super_t {
     int persist();
 };
 
+/* 0 should be reserved */
 template <size_t N> class bitset : public std::bitset<N> {
   public:
-    uint32_t find_empty();
+    inline uint32_t find_empty() {
+        for (int i = 1; i < N; i++) {
+            if (this->test(i) == false)
+                return i;
+        }
+        return 0;
+    }
 };
 
 /* the in-memory bitmap blk controller */
