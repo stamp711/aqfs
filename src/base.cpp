@@ -5,19 +5,16 @@
 
 namespace aqfs {
 
-template <typename T> int blkbuf<T>::fill() {
+int blkbuf_t::fill() {
     char buf[BLKSIZE];
-    int res = Runtime::disk.read(this->blkno, buf);
+    int res = Runtime::disk.read(this->blkno, this->data);
     if (res != 0)
         return -1;
-    std::memcpy(&this->data, buf, sizeof(data));
     return 0;
 }
 
-template <typename T> int blkbuf<T>::persist() {
-    char buf[BLKSIZE];
-    std::memcpy(buf, &this->data, sizeof(data));
-    int res = Runtime::disk.write(this->blkno, buf);
+int blkbuf_t::persist() {
+    int res = Runtime::disk.write(this->blkno, this->data);
     if (res != 0)
         return -1;
     return 0;

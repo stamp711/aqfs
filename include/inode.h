@@ -26,19 +26,11 @@ struct inode {
 struct inode_blk {
     struct inode inodes[INODES_PER_BLK];
 };
-typedef blkbuf<inode_blk> inode_blk_buf;
 
 /* indirect data block */
 struct indirect_blk {
     uint32_t link[INDRECT_LINK_PER_BLK];
 };
-typedef blkbuf<indirect_blk> indirect_blk_buf;
-
-/* structure for plain file data blk */
-struct data_blk {
-    char content[BLKSIZE];
-};
-typedef blkbuf<data_blk> data_blk_buf;
 
 /* the in memory inode_t */
 class inode_t {
@@ -74,7 +66,7 @@ class inode_t {
 
     void setmode(mode_t mode) {
         this->inode.mode = mode;
-        this->dirty      = true;
+        this->dirty = true;
     }
 
     void addref() {
@@ -85,6 +77,7 @@ class inode_t {
     void deref() {
         this->inode.refcount--;
         this->dirty = true;
+        // TODO:
     }
 
     /* read nbytes from associated data, starting from offset */
@@ -109,11 +102,10 @@ class inode_t {
     /* fill content from inode with number `ino` on disk */
     int fill();
 
+    int get_blk(size_t n, blkbuf_t *blkbuf);
+
     /* get the file's nth data block number on the block device */
-    inline uint32_t get_blkno_by_offst(off_t offset) {
-        return get_blkno(offset / BLKSIZE);
-    }
-    uint32_t get_blkno(size_t n);
+    uint32_t blk_walk(size_t n, bool alloc = false, bool free = false);
 };
 
 } // namespace aqfs

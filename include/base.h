@@ -7,12 +7,12 @@
 namespace aqfs {
 
 /* in-memory blk buffer */
-template <typename T> struct blkbuf {
+struct blkbuf_t {
     uint32_t blkno;
-    T data;
+    char data[BLKSIZE];
 
-    blkbuf<T>() = delete;
-    blkbuf<T>(uint32_t blkno) { this->blkno = blkno; }
+    blkbuf_t() = default;
+    blkbuf_t(uint32_t blkno) { this->blkno = blkno; }
     int fill();
     int persist();
 };

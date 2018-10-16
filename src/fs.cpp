@@ -496,7 +496,7 @@ int fs::read(const char *path, char *buf, size_t size, off_t offset,
 
     inode_t inode(ino);
     int bytes_read = inode.read(size, offset, buf);
-    if (res < 0)
+    if (bytes_read < 0)
         return -EIO;
 
     return bytes_read;
