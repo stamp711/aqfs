@@ -2,6 +2,7 @@
 #define AQFS_INODE_H
 
 #include "base.h"
+#include <iostream>
 #include <stdint.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -34,7 +35,7 @@ struct indirect_blk {
 
 /* the in memory inode_t */
 class inode_t {
-  private:
+  protected:
     uint32_t ino; /* unique inode number */
     struct inode inode;
     bool dirty;
@@ -77,12 +78,14 @@ class inode_t {
     void deref() {
         this->inode.refcount--;
         this->dirty = true;
-        // TODO:
+        if (this->inode.refcount == 0) {
+            // TODO: 清理 inode
+        }
     }
 
     /* read nbytes from associated data, starting from offset */
-    int read(size_t nbyte, off_t offset, char *buf);
-    int write(size_t nbyte, off_t offset, const char *buf);
+    int read(size_t nbyte, size_t offset, char *buf);
+    int write(size_t nbyte, size_t offset, const char *buf);
     int shrinkto(size_t nbyte);
 
     /**
@@ -98,7 +101,7 @@ class inode_t {
         return res;
     }
 
-  private:
+  protected:
     /* fill content from inode with number `ino` on disk */
     int fill();
 

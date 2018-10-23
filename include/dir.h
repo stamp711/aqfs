@@ -1,5 +1,4 @@
-#ifndef AQFS_DIR_H
-#define AQFS_DIR_H
+#pragma once
 
 #include "inode.h"
 #include <queue>
@@ -12,37 +11,19 @@ struct direntry {
 };
 
 struct dir_blk {
-    struct direntry entry[MAX_DIRENTRY_PER_BLK];
+    struct direntry entry[DIRENTRY_PER_BLK];
 };
 
-struct dir_t {
-    inode_t inode;
-
-  private:
-    uint32_t n_entry;
-    bool n_entry_valid;
+struct dir_t : public inode_t {
 
   public:
-    dir_t() = delete;
-    dir_t(uint32_t ino) : inode(ino) {}
-    ~dir_t() {}
+    dir_t(uint32_t ino) : inode_t(ino) {}
 
-    size_t getentcount() {
-        if (!this->n_entry_valid) {
-            this->update_n_entry();
-            this->n_entry_valid = true;
-        }
-        return n_entry;
-    }
     uint32_t lookup(const char *name);
     std::queue<struct direntry> read();
     int add(uint32_t ino, const char *name);
     int remove(const char *name);
-
-  private:
-    int update_n_entry();
+    bool hasChild();
 };
 
 } // namespace aqfs
-
-#endif

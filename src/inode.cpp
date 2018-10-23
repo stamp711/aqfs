@@ -40,6 +40,7 @@ int inode_t::fill() {
 /*
  * 找到 inode 连接的第 n 个 block 的编号。
  * 如果编号为 0 且 alloc 为真，那么初始化一个新的 block。
+ * TODO: 必要时 free 掉 indirect blk
  */
 uint32_t inode_t::blk_walk(size_t n, bool alloc, bool free) {
     uint32_t *blkno;
@@ -110,12 +111,12 @@ int inode_t::get_blk(size_t n, blkbuf_t *blkbuf) {
     return blkbuf->fill();
 }
 
-int inode_t::read(size_t nbyte, off_t offset, char *buf) {
+int inode_t::read(size_t nbyte, size_t offset, char *buf) {
     if (offset >= this->inode.size)
         return 0;
     nbyte = MIN(nbyte, this->inode.size - offset);
     blkbuf_t blkbuf;
-    for (off_t pos = offset; pos < offset + nbyte;) {
+    for (size_t pos = offset; pos < offset + nbyte;) {
         if (this->get_blk(pos / BLKSIZE, &blkbuf) != 0)
             return -1;
         int bn = MIN(BLKSIZE - pos % BLKSIZE, offset + nbyte - pos);
@@ -126,14 +127,14 @@ int inode_t::read(size_t nbyte, off_t offset, char *buf) {
     return nbyte;
 }
 
-int inode_t::write(size_t nbyte, off_t offset, const char *buf) {
+int inode_t::write(size_t nbyte, size_t offset, const char *buf) {
     // Extend file if necessary
     if (offset + nbyte >= this->inode.size) {
         this->inode.size = offset + nbyte;
         this->dirty = true;
     }
     blkbuf_t blkbuf;
-    for (off_t pos = offset; pos < offset + nbyte;) {
+    for (size_t pos = offset; pos < offset + nbyte;) {
         if (this->get_blk(pos / BLKSIZE, &blkbuf) == 0)
             return -1;
         int bn = MIN(BLKSIZE - pos % BLKSIZE, offset + nbyte - pos);
@@ -158,7 +159,8 @@ int inode_t::shrinkto(size_t nbyte) {
         this->blk_walk(bno, false, true);
 
     if (new_nblocks <= DIRECT_BLKS_PER_INODE) {
-        memset(this->inode.single_indrect, 0, SINGLE_INDRECT_BLKS_PER_INODE);
+        memset(this->inode.single_indrect, 0,
+               sizeof(uint32_t) * SINGLE_INDRECT_BLKS_PER_INODE);
         this->dirty = true;
     }
     this->inode.size = nbyte;

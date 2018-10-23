@@ -16,7 +16,10 @@ find_package(FUSE REQUIRED)
 find_package(Boost REQUIRED filesystem)
 include_directories(include ${FUSE_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
 
-add_library(aqfs src/disk.cpp src/base.cpp src/inode.cpp src/dir.cpp)
+add_library(aqfs src/disk.cpp src/base.cpp src/inode.cpp src/dir.cpp src/runtime.cpp)
 
 add_executable(aqfs.fuse src/fs.cpp)
 target_link_libraries(aqfs.fuse aqfs ${FUSE_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(aqfs.mkfs src/mkfs.cpp)
+target_link_libraries(aqfs.mkfs aqfs)

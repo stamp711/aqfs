@@ -6,7 +6,6 @@
 namespace aqfs {
 
 int blkbuf_t::fill() {
-    char buf[BLKSIZE];
     int res = Runtime::disk.read(this->blkno, this->data);
     if (res != 0)
         return -1;
@@ -30,7 +29,7 @@ int super_t::load() {
 }
 
 int super_t::persist() {
-    char buf[BLKSIZE];
+    char buf[BLKSIZE] = {0};
     std::memcpy(buf, this, sizeof(super_t));
     int res = Runtime::disk.write(BASE_SUPER_BLK, buf);
     if (res != 0)
@@ -48,7 +47,7 @@ int bitmap_t::load() {
 }
 
 int bitmap_t::persist() {
-    char buf[BLKSIZE];
+    char buf[BLKSIZE] = {0};
     std::memcpy(buf, this, sizeof(bitmap_t));
     int res = Runtime::disk.write(BASE_BITMAP_BLK, buf);
     if (res != 0)

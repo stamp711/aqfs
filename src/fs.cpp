@@ -37,7 +37,7 @@ int cd(dir_t &d, path_t p) {
  */
 int getino(path_t p, uint32_t &ino) {
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/")
@@ -71,7 +71,7 @@ int fs::getattr(const char *path, struct stat *statbuf) {
 
     path_t p(path);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/")
@@ -80,8 +80,8 @@ int fs::getattr(const char *path, struct stat *statbuf) {
     /* 如果 `path` 是根目录，直接填充信息 */
     if (p == "/") {
         inode_t root_inode(2);
-        statbuf->st_ino   = 2;
-        statbuf->st_mode  = root_inode.getmode();
+        statbuf->st_ino = 2;
+        statbuf->st_mode = root_inode.getmode();
         statbuf->st_nlink = root_inode.getrefcount();
         return 0;
     }
@@ -99,8 +99,8 @@ int fs::getattr(const char *path, struct stat *statbuf) {
 
     /* 从相应的 inode 里读取元数据 */
     inode_t inode(ino);
-    statbuf->st_ino   = ino;
-    statbuf->st_mode  = inode.getmode();
+    statbuf->st_ino = ino;
+    statbuf->st_mode = inode.getmode();
     statbuf->st_nlink = inode.getrefcount();
 
     /* 如果它是普通文件，还需要读出其大小 */
@@ -113,7 +113,7 @@ int fs::getattr(const char *path, struct stat *statbuf) {
 int fs::readlink(const char *path, char *buf, size_t size) {
     path_t p(path);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/")
@@ -132,7 +132,7 @@ int fs::readlink(const char *path, char *buf, size_t size) {
 
     /* 从相应的 inode 里读取 symlink 内容到 `buf` */
     inode_t inode(ino);
-    int slen = inode.getsize(); /* symlink length */
+    uint32_t slen = inode.getsize(); /* symlink length */
     if (size < slen)
         slen = size;
     inode.read(slen, 0, buf);
@@ -160,8 +160,8 @@ int fs::opendir(const char *path, struct fuse_file_info *fi) {
      * 并在其上调用 deref().
      * [⚠️] 当 deref() 后，如果 refcount 为 0，inode 会自动销毁.
      */
-    fi->fh = d.inode.getino();
-    d.inode.addref();
+    fi->fh = d.getino();
+    d.addref();
 
     return 0;
 }
@@ -189,13 +189,14 @@ int fs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off,
         /* 读取这个 inode 的元数据 */
         struct stat st = {0};
         inode_t inode(ino);
-        st.st_ino   = ino;
-        st.st_mode  = inode.getmode();
+        st.st_ino = ino;
+        st.st_mode = inode.getmode();
         st.st_nlink = inode.getrefcount();
         if (st.st_nlink == S_IFREG)
             st.st_size = inode.getsize();
 
         /* 塞进buf，忽略`off` */
+        // entry.name 应当以 \0 结尾
         filler(buf, entries.front().name, &st, 0);
         entries.pop();
     }
@@ -206,7 +207,7 @@ int fs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off,
 int fs::mkdir(const char *path, mode_t mode) {
     path_t p(path);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/")
@@ -238,12 +239,12 @@ int fs::mkdir(const char *path, mode_t mode) {
     /* 创建 dir */
     Runtime::bitmap.imap.set(ino);
     dir_t dir(ino);
-    dir.inode.zero();
-    dir.inode.setmode(S_IFDIR | 0755);
-    dir.inode.addref();
+    dir.zero();
+    dir.setmode(S_IFDIR | 0755);
+    dir.addref();
 
     dir.add(ino, ".");
-    dir.add(d.inode.getino(), "..");
+    dir.add(d.getino(), "..");
 
     return 0;
 }
@@ -251,7 +252,7 @@ int fs::mkdir(const char *path, mode_t mode) {
 int fs::unlink(const char *path) {
     path_t p(path);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/")
@@ -281,7 +282,7 @@ int fs::unlink(const char *path) {
 int fs::rmdir(const char *path) {
     path_t p(path);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/")
@@ -298,16 +299,16 @@ int fs::rmdir(const char *path) {
         return res;
 
     /* 检查 links */
-    if (target.getentcount() == 2)
+    if (target.hasChild())
         return -ENOTEMPTY;
 
     /* remove the entry in its parent */
-    dir_t parent_dir(target.inode.getino());
+    dir_t parent_dir(target.getino());
     cd(parent_dir, "..");
     parent_dir.remove(name.c_str());
 
     /* deref that dir */
-    target.inode.deref();
+    target.deref();
 
     return 0;
 }
@@ -315,7 +316,7 @@ int fs::rmdir(const char *path) {
 int fs::symlink(const char *to, const char *from) {
     path_t p(from);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/")
@@ -356,11 +357,11 @@ int fs::symlink(const char *to, const char *from) {
 int fs::rename(const char *from, const char *to) {
     path_t p(from);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     path_t to_p(from);
     path_t to_parent = to_p.parent_path();
-    path_t to_name   = to_p.filename();
+    path_t to_name = to_p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/" || to_p.root_directory() != "/")
@@ -395,11 +396,11 @@ int fs::rename(const char *from, const char *to) {
 int fs::link(const char *from, const char *to) {
     path_t p(from);
     path_t parent = p.parent_path();
-    path_t name   = p.filename();
+    path_t name = p.filename();
 
     path_t to_p(from);
     path_t to_parent = to_p.parent_path();
-    path_t to_name   = to_p.filename();
+    path_t to_name = to_p.filename();
 
     /* 验证根目录 */
     if (p.root_directory() != "/" || to_p.root_directory() != "/")

@@ -1,12 +1,15 @@
 #include "disk.h"
 #include "runtime.h"
 #include <fstream>
+#include <iostream>
 
 namespace aqfs {
 
 /* 需要 root 已经被设置 */
 int disk_t::read(uint32_t blkno, char *buf) {
-    std::string path = this->root + "/blk_" + std::to_string(blkno);
+    char fname[10];
+    sprintf(fname, "/blk_%04d", blkno);
+    std::string path = this->root + fname;
     std::ifstream f(path);
 
     if (f.read(buf, BLKSIZE))
@@ -16,8 +19,12 @@ int disk_t::read(uint32_t blkno, char *buf) {
 }
 
 int disk_t::write(uint32_t blkno, char *buf) {
-    std::string path = this->root + "/blk_" + std::to_string(blkno);
+    char fname[10];
+    sprintf(fname, "/blk_%04d", blkno);
+    std::string path = this->root + fname;
     std::ofstream f(path);
+
+    std::cout << "write " << path << std::endl;
 
     if (f.write(buf, BLKSIZE))
         return 0;

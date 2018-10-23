@@ -3,6 +3,7 @@
 
 #include "paras.h"
 #include <bitset>
+#include <cstring>
 
 namespace aqfs {
 
@@ -14,6 +15,10 @@ struct blkbuf_t {
     blkbuf_t() = default;
     blkbuf_t(uint32_t blkno) { this->blkno = blkno; }
     int fill();
+    inline void clear() {
+        this->blkno = 0;
+        memset(this->data, 0, BLKSIZE);
+    }
     int persist();
 };
 
@@ -30,7 +35,7 @@ struct super_t {
 template <size_t N> class bitset : public std::bitset<N> {
   public:
     inline uint32_t find_empty() {
-        for (int i = 1; i < N; i++) {
+        for (size_t i = 1; i < N; i++) {
             if (this->test(i) == false)
                 return i;
         }
