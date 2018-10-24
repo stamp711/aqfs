@@ -7,7 +7,7 @@ namespace aqfs {
 
 struct direntry {
     uint32_t ino;
-    char name[28];
+    char name[60];
 };
 
 struct dir_blk {

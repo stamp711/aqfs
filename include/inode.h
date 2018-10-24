@@ -86,6 +86,7 @@ class inode_t {
     /* read nbytes from associated data, starting from offset */
     int read(size_t nbyte, size_t offset, char *buf);
     int write(size_t nbyte, size_t offset, const char *buf);
+    int extendto(size_t nbyte);
     int shrinkto(size_t nbyte);
 
     /**

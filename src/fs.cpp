@@ -5,7 +5,7 @@
 #include <cstring>
 #include <vector>
 
-static const char blk_root[] = "/home/vagrant/fs";
+static char blk_root[] = "/home/vagrant/fs";
 typedef boost::filesystem::path path_t;
 using aqfs::dir_t;
 using aqfs::inode_t;
@@ -46,7 +46,7 @@ int getino(path_t p, uint32_t &ino) {
         return -EISDIR;
 
     /* 找到 `path` 的上级目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -79,15 +79,15 @@ int fs::getattr(const char *path, struct stat *statbuf) {
 
     /* 如果 `path` 是根目录，直接填充信息 */
     if (p == "/") {
-        inode_t root_inode(2);
-        statbuf->st_ino = 2;
+        inode_t root_inode(1);
+        statbuf->st_ino = 1;
         statbuf->st_mode = root_inode.getmode();
         statbuf->st_nlink = root_inode.getrefcount();
         return 0;
     }
 
     /* 找到 `path` 的上级目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -102,6 +102,7 @@ int fs::getattr(const char *path, struct stat *statbuf) {
     statbuf->st_ino = ino;
     statbuf->st_mode = inode.getmode();
     statbuf->st_nlink = inode.getrefcount();
+    statbuf->st_size = inode.getsize();
 
     /* 如果它是普通文件，还需要读出其大小 */
     if (statbuf->st_nlink == S_IFREG)
@@ -120,7 +121,7 @@ int fs::readlink(const char *path, char *buf, size_t size) {
         return -ENOENT;
 
     /* 找到 `path` 的上级目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -138,7 +139,7 @@ int fs::readlink(const char *path, char *buf, size_t size) {
     inode.read(slen, 0, buf);
 
     /* 返回填充到 `buf` 的字节数 */
-    return slen;
+    return 0;
 }
 
 int fs::opendir(const char *path, struct fuse_file_info *fi) {
@@ -149,7 +150,7 @@ int fs::opendir(const char *path, struct fuse_file_info *fi) {
         return -ENOENT;
 
     /* 找到相应的目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, p.relative_path());
     if (res != 0)
         return res;
@@ -175,7 +176,7 @@ int fs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off,
         return -ENOENT;
 
     /* 找到目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, p.relative_path());
     if (res != 0)
         return res;
@@ -216,7 +217,7 @@ int fs::mkdir(const char *path, mode_t mode) {
         return -EISDIR;
 
     /* 找到 `path` 的上级目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -259,7 +260,7 @@ int fs::unlink(const char *path) {
         return -ENOENT;
 
     /* 找到 `path` 的上级目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -293,7 +294,7 @@ int fs::rmdir(const char *path) {
         return -EISDIR;
 
     /* cd 到 `path` */
-    dir_t target(2);
+    dir_t target(1);
     int res = cd(target, p.relative_path());
     if (res != 0)
         return res;
@@ -323,7 +324,7 @@ int fs::symlink(const char *to, const char *from) {
         return -ENOENT;
 
     /* 找到 `path` 的上级目录 */
-    dir_t d(2);
+    dir_t d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -349,7 +350,7 @@ int fs::symlink(const char *to, const char *from) {
     symlink.addref();
 
     /* 将路径写入 symlink */
-    symlink.write(strlen(to), 0, to);
+    symlink.write(strlen(to) + 1, 0, to);
 
     return 0;
 }
@@ -359,7 +360,7 @@ int fs::rename(const char *from, const char *to) {
     path_t parent = p.parent_path();
     path_t name = p.filename();
 
-    path_t to_p(from);
+    path_t to_p(to);
     path_t to_parent = to_p.parent_path();
     path_t to_name = to_p.filename();
 
@@ -370,7 +371,7 @@ int fs::rename(const char *from, const char *to) {
         return -EISDIR;
 
     /* 找到 `from` 和 `to` 的上级目录 */
-    dir_t d(2), to_d(2);
+    dir_t d(1), to_d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -398,7 +399,7 @@ int fs::link(const char *from, const char *to) {
     path_t parent = p.parent_path();
     path_t name = p.filename();
 
-    path_t to_p(from);
+    path_t to_p(to);
     path_t to_parent = to_p.parent_path();
     path_t to_name = to_p.filename();
 
@@ -409,7 +410,7 @@ int fs::link(const char *from, const char *to) {
         return -EISDIR;
 
     /* 找到 `from` 和 `to` 的上级目录 */
-    dir_t d(2), to_d(2);
+    dir_t d(1), to_d(1);
     int res = cd(d, parent.relative_path());
     if (res != 0)
         return res;
@@ -435,6 +436,21 @@ int fs::link(const char *from, const char *to) {
 
     return 0;
 }
+
+int fs::chmod(const char *path, mode_t mode) {
+    path_t p(path);
+
+    uint32_t ino;
+    int res = getino(p, ino);
+    if (res != 0)
+        return res;
+
+    inode_t inode(ino);
+    inode.setmode(mode);
+
+    return 0;
+}
+
 int fs::truncate(const char *path, off_t size) {
     path_t p(path);
     uint32_t ino;
@@ -485,6 +501,48 @@ int fs::open(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
+int fs::create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    path_t p(path);
+    path_t parent = p.parent_path();
+    path_t name = p.filename();
+
+    /* 验证根目录 */
+    if (p.root_directory() != "/")
+        return -ENOENT;
+    if (p == "/")
+        return -EISDIR;
+
+    /* 找到 `path` 的上级目录 */
+    dir_t d(1);
+    int res = cd(d, parent.relative_path());
+    if (res != 0)
+        return res;
+
+    /* 如果 `path` 已存在，返回 */
+    if (d.lookup(name.c_str()) != 0)
+        return 0;
+
+    /* 找到一个未被使用的 inode */
+    uint32_t ino = Runtime::bitmap.imap.find_empty();
+
+    /* 创建 direntry */
+    res = d.add(ino, name.c_str());
+    if (res != 0)
+        /* link 已满 */
+        return -EMLINK;
+
+    /* 创建 inode */
+    Runtime::bitmap.imap.set(ino);
+    inode_t inode(ino);
+    inode.zero();
+    inode.setmode(mode);
+    inode.addref();
+
+    // fs::open(path, fi);
+
+    return 0;
+}
+
 int fs::read(const char *path, char *buf, size_t size, off_t offset,
              struct fuse_file_info *fi) {
 
@@ -503,7 +561,7 @@ int fs::read(const char *path, char *buf, size_t size, off_t offset,
     return bytes_read;
 }
 
-int fs::write(const char *path, char *buf, size_t size, off_t offset,
+int fs::write(const char *path, const char *buf, size_t size, off_t offset,
               struct fuse_file_info *fi) {
 
     path_t p(path);
@@ -517,7 +575,6 @@ int fs::write(const char *path, char *buf, size_t size, off_t offset,
     int bytes_write = inode.write(size, offset, buf);
     if (res < 0)
         return -EIO;
-
     return bytes_write;
 }
 
@@ -534,6 +591,28 @@ int fs::releasedir(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
+int fs::utimens(const char *path, const struct timespec tv[2]) { return 0; }
+
 } // namespace aqfs
 
-int main(int argc, char *argv[]) { return 0; }
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        std::cout << "usage: " << argv[0] << " [block device root] [fuse args]"
+                  << std::endl;
+        return -1;
+    }
+
+    strcpy(blk_root, argv[1]);
+
+    for (int i = 1; i < argc - 1; i++)
+        argv[i] = argv[i + 1];
+
+    char single_thread[] = "-s";
+    argv[argc - 1] = single_thread;
+
+    static aqfs::fs fs;
+
+    fuse_main(argc, argv, &fs.op, NULL);
+
+    return 0;
+}

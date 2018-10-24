@@ -1,5 +1,4 @@
-#ifndef AQFS_DISK_H
-#define AQFS_DISK_H
+#pragma once
 
 #include <string>
 
@@ -15,5 +14,3 @@ class disk_t {
 };
 
 } // namespace aqfs
-
-#endif

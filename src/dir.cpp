@@ -3,7 +3,8 @@
 namespace aqfs {
 
 int namecmp(const char *s, const char *t) {
-    return strncmp(s, t, MAX_FILENAME);
+    int res = strncmp(s, t, MAX_FILENAME);
+    return res;
 }
 
 uint32_t dir_t::lookup(const char *name) {
@@ -49,9 +50,10 @@ int dir_t::add(uint32_t ino, const char *name) {
     direntry *entries = (direntry *)dirblkbuf.data;
     direntry *entry = nullptr;
 
-    // Check that name is not present.
-    if (this->lookup(name) != 0)
-        return -1;
+    // Make sure that name is not present.
+    while (this->lookup(name) != 0) {
+        this->remove(name);
+    }
 
     // Look for an existing empty direntry
     size_t n;
@@ -98,7 +100,8 @@ int dir_t::remove(const char *name) {
             else if (namecmp(name, entries[i].name) == 0) {
                 // entry matches name
                 entries[i].ino = 0;
-                memset(&entries[i].name, 0, MAX_FILENAME);
+                memset(entries[i].name, 0, MAX_FILENAME);
+                dirblkbuf.persist();
                 return 0;
             }
     }

@@ -24,11 +24,9 @@ int disk_t::write(uint32_t blkno, char *buf) {
     std::string path = this->root + fname;
     std::ofstream f(path);
 
-    std::cout << "write " << path << std::endl;
-
-    if (f.write(buf, BLKSIZE))
+    if (f.write(buf, BLKSIZE)) {
         return 0;
-    else
+    } else
         return -1;
 }
 

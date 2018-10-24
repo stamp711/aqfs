@@ -47,13 +47,20 @@ uint32_t inode_t::blk_walk(size_t n, bool alloc, bool free) {
     blkbuf_t indirect(0);
     if (n > (this->inode.size - 1) / BLKSIZE)
         return 0;
-    if (n >= DIRECT_BLKS_PER_INODE + SINGLE_INDRECT_BLKS_PER_INODE)
+    if (n >= DIRECT_BLKS_PER_INODE +
+                 SINGLE_INDRECT_BLKS_PER_INODE * INDRECT_LINK_PER_BLK)
         return 0;
-    if (n < INDRECT_LINK_PER_BLK)
+    if (n < DIRECT_BLKS_PER_INODE)
         blkno = &this->inode.direct[n];
     else {
-        uint32_t *indrect_blkno =
-            &this->inode.single_indrect[n - DIRECT_BLKS_PER_INODE];
+        uint32_t *indrect_blkno;
+        size_t idx_for_indirect_blk =
+            (n - DIRECT_BLKS_PER_INODE) / INDRECT_LINK_PER_BLK;
+        size_t idx_in_indirect_blk =
+            (n - DIRECT_BLKS_PER_INODE) % INDRECT_LINK_PER_BLK;
+
+        indrect_blkno = &this->inode.single_indrect[idx_for_indirect_blk];
+
         // 如果 indirect block 并没有被 allocate
         if (*indrect_blkno == 0) {
             if (!alloc)
@@ -69,8 +76,7 @@ uint32_t inode_t::blk_walk(size_t n, bool alloc, bool free) {
         // 从磁盘读取 indirect block
         indirect = blkbuf_t(*indrect_blkno);
         indirect.fill();
-        blkno =
-            (uint32_t *)(&indirect.data) + n - SINGLE_INDRECT_BLKS_PER_INODE;
+        blkno = (uint32_t *)(&indirect.data) + idx_in_indirect_blk;
     }
 
     if (alloc && *blkno == 0) {
@@ -129,21 +135,29 @@ int inode_t::read(size_t nbyte, size_t offset, char *buf) {
 
 int inode_t::write(size_t nbyte, size_t offset, const char *buf) {
     // Extend file if necessary
-    if (offset + nbyte >= this->inode.size) {
+    if (offset + nbyte > this->inode.size) {
         this->inode.size = offset + nbyte;
         this->dirty = true;
     }
     blkbuf_t blkbuf;
     for (size_t pos = offset; pos < offset + nbyte;) {
-        if (this->get_blk(pos / BLKSIZE, &blkbuf) == 0)
+        if (this->get_blk(pos / BLKSIZE, &blkbuf) != 0)
             return -1;
-        int bn = MIN(BLKSIZE - pos % BLKSIZE, offset + nbyte - pos);
-        memcpy(&blkbuf.data + pos % BLKSIZE, buf, bn);
+        int bn = MIN(BLKSIZE - (pos % BLKSIZE), offset + nbyte - pos);
+        memcpy(blkbuf.data + (pos % BLKSIZE), buf, bn);
         blkbuf.persist();
         pos += bn;
         buf += bn;
     }
     return nbyte;
+}
+
+int inode_t::extendto(size_t nbyte) {
+    if (nbyte > this->inode.size) {
+        this->dirty = 1;
+        this->inode.size = nbyte;
+    }
+    return 0;
 }
 
 /*
