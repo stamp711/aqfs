@@ -79,7 +79,7 @@ class inode_t {
         this->inode.refcount--;
         this->dirty = true;
         if (this->inode.refcount == 0) {
-            // TODO: 清理 inode
+            this->destory();
         }
     }
 
@@ -110,6 +110,8 @@ class inode_t {
 
     /* get the file's nth data block number on the block device */
     uint32_t blk_walk(size_t n, bool alloc = false, bool free = false);
+
+    void destory();
 };
 
 } // namespace aqfs

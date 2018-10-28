@@ -20,7 +20,7 @@ const int N_DBLKS        = N_DATA_BLKS;
 
 const int DIRECT_BLKS_PER_INODE         = 5;
 const int SINGLE_INDRECT_BLKS_PER_INODE = 8;
-const int INDRECT_LINK_PER_BLK          = 128;
+const int INDRECT_LINK_PER_BLK          = 1024;
 
 const int DIRENTRY_PER_BLK = 64;
 const int MAX_FILENAME = 59;

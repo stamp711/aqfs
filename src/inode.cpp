@@ -40,7 +40,7 @@ int inode_t::fill() {
 /*
  * 找到 inode 连接的第 n 个 block 的编号。
  * 如果编号为 0 且 alloc 为真，那么初始化一个新的 block。
- * TODO: 必要时 free 掉 indirect blk
+ * 必要时 free 掉 indirect blk
  */
 uint32_t inode_t::blk_walk(size_t n, bool alloc, bool free) {
     uint32_t *blkno;
@@ -108,6 +108,8 @@ uint32_t inode_t::blk_walk(size_t n, bool alloc, bool free) {
 
     return *blkno;
 }
+
+void inode_t::destory() {}
 
 int inode_t::get_blk(size_t n, blkbuf_t *blkbuf) {
     uint32_t blkno = this->blk_walk(n, true);
